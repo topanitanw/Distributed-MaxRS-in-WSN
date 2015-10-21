@@ -1,0 +1,166 @@
+# -*- mode: org -*-
+#+TAG: {}
+#+STARTUP: overview indent hidestars
+#+TODO: TODO IN-PROGRESS WAITING DONE
+#+PRIORITIES: A C A
+#+TITLE today's plan
+
+* DONE Equipments
+** [32/32] telosbs + [4/4] spare telosbs
+- There are 4 telosbs the connection between battery cells and 
+  its circuit board of which are loosely connected.
+** [4/4] sun spot + [2/2] spare telosbs
+** [72/72] battery cells
+
+* DONE Node Deployment
+** B:0x7F38
+** S:Node ID for Sun Spots only for the last 16 bits of its IP address
+** T:Node ID for telosbs -> 16 bits 0xABCD
+- A = a cluster number range: {0-3}
+- B = a node number in a cluster range: {0-7}
+- CD = a decimal node id within the area of deployment range: {0-31}
+  It starts counting from the left to right.
+|---+----------+----------+----------+----------+----------+----------|
+| 0 | 1        | 2        | 3        | 4        | 5        | 6        |
+|---+----------+----------+----------+----------+----------+----------|
+| 1 | T:0x0000 | T:0x0101 | T:0x0202 | T:0x1003 | T:0x1104 | T:0x1205 |
+| 2 | T:0x0306 | S:0x7EBA | T:0x0407 | T:0x1308 | S:0x7F45 | T:0x1409 |
+| 3 | T:0x0510 | T:0x0611 | T:0x0712 | T:0x1513 | T:0x1614 | T:0x1715 |
+|---+----------+----------+----------+----------+----------+----------|
+| 4 | T:0x2016 | T:0x2117 | T:0x2218 | T:0x3019 | T:0x3120 | T:0x3221 |
+| 5 | T:0x2322 | S:0x79A3 | T:0x2423 | T:0x3324 | S:0x7997 | T:0x3425 |
+| 6 | T:0x2526 | T:0x2627 | T:0x2728 | T:0x3529 | T:0x3630 | T:0x3731 |
+|---+----------+----------+----------+----------+----------+----------|
+
+* IN-PROGRESS Communication
+** Telosb data
+*** Node ID 16 bits
+*** Reading values of Sensors
+- light sensor HamamatsuS1087ParC() = 16 bits
+- temperature sensor SensirionSht11C() as TSensor = 16 bits
+
+** Packages and Message types: 
+|-----+----------------+-------------------+-------------+------------+-------|
+| No. | payload        | from              | to          | Purpose    |  Bits |
+|-----+----------------+-------------------+-------------+------------+-------|
+|   0 | constant       | installing        | all         | Reset      |     8 |
+|   1 | updated period | base, sun, telosb | sun, telosb | setup      |     8 |
+|   2 | light sensor   | telosb            | sun spot    | data trans |    16 |
+|   3 | temp sensor    | telosb            | sun spot    | data trans |    16 |
+|   4 | light, temp    | telosb            | sun spot    | data trans | 16+16 |
+|   5 | 8 bits         | HC:2, 3  <=>      | telosb      | feedback   |     8 |
+|   6 | 16 bits        | HC:0  <=>         | telosb      | feedback   |    16 |
+|   7 | 32 bits        | HC:1  <=>         | telosb      | feedback   |    32 |
+|-----+----------------+-------------------+-------------+------------+-------|
+@Note: No. 5, 6 and 7 are the testing pcks.
+
+** GUI
+*** selection 
+1. temperature or light sensor
+2. energy threshold
+3. updated period (assume that it should be at least 10 seconds)
+
+** Basestation
+|---------+----------+--------+----------+-------+----------+------------|
+| Cluster | Node ID  | Tx, Rx | Sun Spot |  Type | Purpose  | How 2 send |
+|---------+----------+--------+----------+-------+----------+------------|
+|       1 | T:0x1205 | <-     | B:0x7F38 |     1 | setup    |            |
+|         |          | ->     |          |     7 | feedback |            |
+|---------+----------+--------+----------+-------+----------+------------|
+
+** Head of the cluster
+|-------------+--------------+--------+---------+-------+----------|
+| Cluster No. | Head Cluster | Tx, Rx |  Telosb |  Type | Purpose  |
+|-------------+--------------+--------+---------+-------+----------|
+|           1 |       0x7F45 | <-     |  0x1205 |     1 | setup    |
+|             |              | <-     |         | 2,3,4 | data     |
+|             |              | ->     |         |     7 | feedback |
+|             |              | ->     |  0x1003 |     1 | setup    |
+|             |              | <-     |         | 2,3,4 | data     |
+|             |              | <-     |         |     6 | feedback |
+|             |              | ->     |  0x1715 |     1 | setup    |
+|             |              | <-     |         | 2,3,4 | data     |
+|             |              | <-     |         |     5 | feedback |
+|             |              | ->     | in Clus |     1 | setup    |
+|-------------+--------------+--------+---------+-------+----------|
+|           0 |       0x7EBA | <-     |  0x0202 |     1 | setup    |
+|             |              | <-     |         | 2,3,4 | data     |
+|             |              | ->     |         |     6 | feedback |
+|             |              | ->     |  0x0712 |     1 | setup    |
+|             |              | <-     |         | 2,3,4 | data     |
+|             |              | <-     |         |     5 | feedback |
+|             |              | ->     | in Clus |     1 | setup    |
+|-------------+--------------+--------+---------+-------+----------|
+|           2 |       0x79A3 | <-     |  0x2218 |     1 | setup    |
+|             |              | <-     |         | 2,3,4 | data     |
+|             |              | ->     |         |     5 | feedback |
+|             |              | ->     | in Clus |     1 | setup    |
+|-------------+--------------+--------+---------+-------+----------|
+|           3 |       0x7997 | <-     |  0x3221 |     1 | setup    |
+|             |              | <-     |         | 2,3,4 | data     |
+|             |              | ->     |         |     5 | feedback |
+|             |              | ->     | in Clus |     1 | setup    |
+|-------------+--------------+--------+---------+-------+----------|
+@Note: Every node must receive the reset packages.
+
+** Telosb
+|---------+----------+--------+----------+-------+----------+------------|
+| Cluster | Node ID  | Tx, Rx | Sun Spot |  Type | Purpose  | How 2 send |
+|---------+----------+--------+----------+-------+----------+------------|
+|       1 | T:0x1205 | <-     | B:0x7F38 |     1 | setup    |            |
+|         |          | ->     |          |     7 | feedback |            |
+|         |          | ->     | S:0x7F45 |     1 | setup    |            |
+|         |          | ->     |          | 2,3,4 | data     |            |
+|         |          | <-     |          |     1 | setup    | in Clus    |
+|         |          | <-     |          |     7 | feedback |            |
+|         |          | <-     | any      |     0 | reset    | Broadcast  |
+|---------+----------+--------+----------+-------+----------+------------|
+|         | T:0x1715 | ->     | S:0x7F45 |     1 | setup    |            |
+|         |          | ->     |          | 2,3,4 | data     |            |
+|         |          | <-     |          |     1 | setup    | in Clus    |
+|         |          | ->     |          |     5 | feedback |            |
+|         |          | ->     | T:0x3221 |     1 | setup    |            |
+|         |          | <-     |          |     5 | feedback |            |
+|         |          | <-     | any      |     0 | reset    | Broadcast  |
+|---------+----------+--------+----------+-------+----------+------------|
+|         | T:0x1003 | <-     | S:0x7F45 |     1 | setup    |            |
+|         |          | ->     |          | 2,3,4 | data     |            |
+|         |          | <-     |          |     1 | setup    | in Clus    |
+|         |          | ->     |          |     6 | feedback |            |
+|         |          | ->     | T:0x0202 |     1 | setup    |            |
+|         |          | <-     |          |     6 | feedback |            |
+|         |          | <-     | any      |     0 | reset    | Broadcast  |
+|---------+----------+--------+----------+-------+----------+------------|
+|       3 | T:0x3221 | ->     | S:0x7997 |     1 | setup    |            |
+|         |          | ->     |          | 2,3,4 | data     |            |
+|         |          | <-     |          |     1 | setup    | in Clus    |
+|         |          | <-     |          |     5 | feedback |            |
+|         |          | <-     | T:0x1715 |     1 | setup    |            |
+|         |          | ->     |          |     5 | feedback |            |
+|         |          | <-     | any      |     0 | reset    |            |
+|---------+----------+--------+----------+-------+----------+------------|
+|       0 | T:0x0202 | ->     | S:0x7EBA |     1 | setup    |            |
+|         |          | ->     |          | 2,3,4 | data     |            |
+|         |          | <-     |          |     1 | setup    |            |
+|         |          | <-     |          |     6 | feedback |            |
+|         |          | <-     | T:0x1003 |     1 | setup    |            |
+|         |          | ->     |          |     6 | feedback |            |
+|         |          | <-     | any      |     0 | reset    |            |
+|---------+----------+--------+----------+-------+----------+------------|
+|         | T:0x0712 | ->     | S:0x7EBA |     1 | setup    |            |
+|         |          | ->     |          | 2,3,4 | data     |            |
+|         |          | <-     |          |     1 | setup    |            |
+|         |          | ->     | T:0x2218 |     1 | setup    |            |
+|         |          | <-     |          |     5 | feedback |            |
+|         |          | <-     | any      |     0 | reset    |            |
+|---------+----------+--------+----------+-------+----------+------------|
+|       2 | T:0x2218 | ->     | S:0x79A3 |     1 | setup    |            |
+|         |          | ->     |          | 2,3,4 | data     |            |
+|         |          | <-     |          |     1 | setup    | in Clus    |
+|         |          | <-     |          |     5 | feedback |            |
+|         |          | <-     | T:0x0712 |     1 | setup    |            |
+|         |          | ->     |          |     5 | feedback |            |
+|         |          | <-     | any      |     0 | reset    |            |
+|---------+----------+--------+----------+-------+----------+------------|
+@Note 1: T:0x2218 = T:0x3221, T:0x0712 = T:0x1715
+@Note 2: all nodes can send the reset pck.
