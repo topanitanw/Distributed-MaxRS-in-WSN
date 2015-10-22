@@ -153,6 +153,7 @@ implementation // the implementation part
     // setting the timer
     if(call Dis_Timer.isRunning())
       call Dis_Timer.stop();
+
     if(call Cen_Timer.isRunning())
       call Cen_Timer.stop();
     // reset the sensor configuration
@@ -164,15 +165,27 @@ implementation // the implementation part
     call Leds.led1Off();
     call Leds.led2Off();
   }
-  void am_send(uint dst_addr, void* pck, uint sz) {
+  void am_send(uint dst_addr, void* pck_ptr, uint sz) {
     if(!busy)
     {
-      error_t err = call AMSend.send(dst_addr, pck, sz);
+      error_t err = call AMSend.send(dst_addr, pck_ptr, sz);
       if(err == SUCCESS) {
-	busy = pck;
+	busy = pck_ptr;
       } else {
 	printf("am_send fail err: %d\n", err);
       }
+    }
+  }
+  void fw_data(am_addr_t src_addr, void* pck_ptr, uint8_t sz)
+  { // forward the data  either to principle or to buddy
+    if(src_addr == PRINCIPLE_ID)
+    {
+      am_send(T_BUDDY_ID, pck_ptr, sz);
+      printf("fw data to 0x%04X\n", T_BUDDY_ID);
+    } else if(src_addr == T_BUDDY_ID)
+    {
+      am_send(PRINCIPLE_ID, pck_ptr, sz);
+      printf("fw data to 0x%04X\n", PRINCIPLE_ID);
     }
   }
   void read_sensor() {
@@ -220,7 +233,7 @@ implementation // the implementation part
   { // when the Light sensor is done, process the data
     if (result == SUCCESS)
     {
-      printf("\n\nLSensor reading data: %u\n", data);
+      printf("LSensor reading data: %u\n", data);
       lsensor_reading = data;
 
     } else
@@ -245,14 +258,14 @@ implementation // the implementation part
 
   event void Cen_Timer.fired() 
   {
-    read_sensor();
-
     if(cen_timer == 0)
     { // skip
       cen_timer = 1;
       return;
     } else if(cen_timer == 1)
     {
+      printf("\n\nCen Timer fire\n");
+      read_sensor();
       if((tsensor_trigger == FALSE) && (lsensor_trigger == TRUE))
       { // light sensor 
 	radio_msg_8* pck8 = (radio_msg_8*) call Packet.getPayload(&cen_packet, sizeof(radio_msg_8));
@@ -271,12 +284,11 @@ implementation // the implementation part
       } 
       cen_timer = 0; // last line 
     }
-      
   }
 
   event void Dis_Timer.fired() 
   { 
-    printf("\n^^^ Timer fired ^^^\n");
+    printf("\n^^^ Dis Timer fired ^^^\n");
     if((tsensor_trigger == FALSE) && (lsensor_trigger == TRUE))
     {
       radio_msg_2* pck2 = (radio_msg_2*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_2));
@@ -293,16 +305,16 @@ implementation // the implementation part
       pck3->tsensor_reading = tsensor_reading;
       am_send(PRINCIPLE_ID, &dis_packet, sizeof(radio_msg_3));
 
-    } else if((tsensor_trigger == TRUE) && (lsensor_trigger == TRUE))
-    {
-      radio_msg_4* pck4 = (radio_msg_4*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_4));
-      printf("Msg4 send to 0x%04X\n", PRINCIPLE_ID);
-      pck4->type = 4;
-      pck4->lsensor_reading = lsensor_reading;
-      pck4->tsensor_reading = tsensor_reading;
-      am_send(PRINCIPLE_ID, &dis_packet, sizeof(radio_msg_4));
-    }
-    printf("^^^ Timer fired end ^^^\n");
+    }/*  else if((tsensor_trigger == TRUE) && (lsensor_trigger == TRUE)) */
+    /* { */
+    /*   radio_msg_4* pck4 = (radio_msg_4*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_4)); */
+    /*   printf("Msg4 send to 0x%04X\n", PRINCIPLE_ID); */
+    /*   pck4->type = 4; */
+    /*   pck4->lsensor_reading = lsensor_reading; */
+    /*   pck4->tsensor_reading = tsensor_reading; */
+    /*   am_send(PRINCIPLE_ID, &dis_packet, sizeof(radio_msg_4)); */
+    /* } */
+    printf("^^^ Dis Timer fired end ^^^\n");
     printfflush();
   } // event void Dis_Timer.fired() 
 
@@ -313,7 +325,7 @@ implementation // the implementation part
     am_addr_t src_addr = call AMPacket.source(bufPtr);
     am_addr_t dst_addr = 0;
     uint8_t pck_type = ((radio_msg_0*) payload)->type;
-    printf("Rx\n");
+    printf("\n\n\nRx\n");
     if(!((src_addr == T_BUDDY_ID) ||
 	 (src_addr == PRINCIPLE_ID) || 
 	 (src_addr == BASE_STATION_ID) ||
@@ -340,7 +352,7 @@ implementation // the implementation part
     } else if(pck_type == 1)
     { // setup
       radio_msg_1* msg1 = (radio_msg_1*) payload;
-      printf("\n\n\nMsg1 [(delay: %d), (pck_type: %d)]\n", 
+      printf("Msg1 [(delay: %d), (pck_type: %d)]\n", 
 	     msg1->delay_s, msg1->sensor_type);
       if(src_addr == PRINCIPLE_ID)
       { 
@@ -374,14 +386,14 @@ implementation // the implementation part
 	  // void *memcpy(void *dest, const void *src, size_t n)
 	  memcpy(pck1_fw, msg1, sizeof(radio_msg_1));
 	  am_send(T_BUDDY_ID, &dis_packet, sizeof(radio_msg_1));
-	} // if(having_buddy && !fw_pck1_to_buddy)
+	}
 
-	// timer will in the millisecond unit
+	// timer in the millisecond unit
 	call Dis_Timer.startPeriodic(msg1->delay_s * 1000);
 	call Cen_Timer.startPeriodic(msg1->delay_s * 500);
 
       } else if((src_addr == T_BUDDY_ID) ||
-	   ((src_addr == BASE_STATION_ID) && (TOS_NODE_ID == 0x1205)))
+		((src_addr == BASE_STATION_ID) && (TOS_NODE_ID == 0x1205)))
       {
 	  // the connecting node forwards the data to its buddy
 	  // it is T:0x1205 and receive the pck from base station
@@ -401,16 +413,16 @@ implementation // the implementation part
       radio_msg_5* pck5_fw = (radio_msg_5*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_5));
       // void *memcpy(void *dest, const void *src, size_t n)
       memcpy(pck5_fw, msg5, sizeof(radio_msg_5));
-
-      if(src_addr == PRINCIPLE_ID)
-      {
-	am_send(T_BUDDY_ID, &dis_packet, sizeof(radio_msg_5));
-	printf("fw data to 0x%04X\n", T_BUDDY_ID);
-      } else if(src_addr == T_BUDDY_ID)
-      {
-	am_send(PRINCIPLE_ID, &dis_packet, sizeof(radio_msg_5));
-	printf("fw data to 0x%04X\n", PRINCIPLE_ID);
-      }
+      fw_data(src_addr, &dis_packet, sizeof(radio_msg_5));
+      /* if(src_addr == PRINCIPLE_ID) */
+      /* { */
+      /* 	am_send(T_BUDDY_ID, &dis_packet, sizeof(radio_msg_5)); */
+      /* 	printf("fw data to 0x%04X\n", T_BUDDY_ID); */
+      /* } else if(src_addr == T_BUDDY_ID) */
+      /* { */
+      /* 	am_send(PRINCIPLE_ID, &dis_packet, sizeof(radio_msg_5)); */
+      /* 	printf("fw data to 0x%04X\n", PRINCIPLE_ID); */
+      /* } */
     /* } else if((pck_type == 10) &&  */
     /* 	      ((src_addr == T_BUDDY_ID) ||  */
     /* 	       ((src_addr == PRINCIPLE_ID) && (connecting_node == TRUE)))) */
@@ -437,16 +449,16 @@ implementation // the implementation part
       radio_msg_6* msg6 = (radio_msg_6*) payload;
       radio_msg_6* pck6_fw = (radio_msg_6*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_6));
       memcpy(pck6_fw, msg6, sizeof(radio_msg_6));
-
-      if(src_addr == PRINCIPLE_ID)
-      {
-	am_send(T_BUDDY_ID, &dis_packet, sizeof(radio_msg_6));
-	printf("fw data to 0x%04X\n", T_BUDDY_ID);
-      } else if(src_addr == T_BUDDY_ID)
-      {
-	am_send(PRINCIPLE_ID, &dis_packet, sizeof(radio_msg_6));
-	printf("fw data to 0x%04X\n", PRINCIPLE_ID);
-      }
+      fw_data(src_addr, &dis_packet, sizeof(radio_msg_6));
+      /* if(src_addr == PRINCIPLE_ID) */
+      /* { */
+      /* 	am_send(T_BUDDY_ID, &dis_packet, sizeof(radio_msg_6)); */
+      /* 	printf("fw data to 0x%04X\n", T_BUDDY_ID); */
+      /* } else if(src_addr == T_BUDDY_ID) */
+      /* { */
+      /* 	am_send(PRINCIPLE_ID, &dis_packet, sizeof(radio_msg_6)); */
+      /* 	printf("fw data to 0x%04X\n", PRINCIPLE_ID); */
+      /* } */
     /* } else if((pck_type == 11) &&  */
     /* 	      ((src_addr == T_BUDDY_ID) ||  */
     /* 	       ((src_addr == PRINCIPLE_ID) && (connecting_node == TRUE)))) */
