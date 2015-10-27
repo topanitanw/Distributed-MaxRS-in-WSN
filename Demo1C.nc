@@ -74,6 +74,7 @@ implementation // the implementation part
   // node specific info
   uint16_t PRINCIPLE_ID = 0;
   uint16_t T_BUDDY_ID = 0;
+  uint16_t T_BUDDY_ID2 = 0; // only for T:0x2728
   uint8_t T_GROUP_ID = 0;
   // depends on how to send the pck1 to other nodes
   bool FW_PCK1_TO_BUDDY = TRUE;
@@ -136,7 +137,23 @@ implementation // the implementation part
       having_buddy = TRUE;
       connecting_node = TRUE;
       FW_PCK1_TO_BUDDY = FALSE;
+    } else if(TOS_NODE_ID == 0x2728)
+    {
+      PRINCIPLE_ID = 0X79A3;
+      T_BUDDY_ID = 0x3529;
+      having_buddy = TRUE;
+      connecting_node = FALSE;
+      FW_PCK1_TO_BUDDY = FALSE;
+    
+    } else if(TOS_NODE_ID == 0x3529)
+    {
+      PRINCIPLE_ID = 0X7997;
+      T_BUDDY_ID = 0x2728;
+      having_buddy = TRUE;
+      connecting_node = FALSE;
+      FW_PCK1_TO_BUDDY = FALSE;
     } else 
+
     { // other telosb nodes
       if(T_GROUP_ID == 0)
 	PRINCIPLE_ID = 0x7EBA;
@@ -188,7 +205,8 @@ implementation // the implementation part
       printf("fw data to 0x%04X\n", PRINCIPLE_ID);
     }
   }
-  void read_sensor() {
+
+  void read_sensors() {
     // read sensors based on the setup package
     if(tsensor_trigger)
       call TRead.read();
@@ -204,7 +222,7 @@ implementation // the implementation part
 
     call Leds.led0On();
     printf("\n\n\n\n-- Date: %s Time: %s --\n", __DATE__, __TIME__);
-    printf("*** Node ID: 0x%04X Group: %d, Principle_id: 0x%X T_next_id: 0x%X ***\n",
+    printf("*** Node ID: 0x%04X Group: %d, Principle_id: 0x%X T_BUDDY_ID: 0x%X ***\n",
 	   TOS_NODE_ID, T_GROUP_ID, PRINCIPLE_ID, T_BUDDY_ID);
     printf("*** Basestation ID: B:0x%04X ***\n\n", BASE_STATION_ID);
     /* printf("*** TOSH_DATA_LENGTH: %d ***\n", TOSH_DATA_LENGTH); */
@@ -265,7 +283,7 @@ implementation // the implementation part
     } else if(cen_timer == 1)
     {
       printf("\n\nCen Timer fire\n");
-      read_sensor();
+      read_sensors();
       if((tsensor_trigger == FALSE) && (lsensor_trigger == TRUE))
       { // light sensor 
 	radio_msg_8* pck8 = (radio_msg_8*) call Packet.getPayload(&cen_packet, sizeof(radio_msg_8));
@@ -484,7 +502,6 @@ implementation // the implementation part
       memcpy(pck7_fw, msg7, sizeof(radio_msg_7));
       am_send(BASE_STATION_ID, &dis_packet, sizeof(radio_msg_7));
       printf("fw data to 0x%04X\n", BASE_STATION_ID);
-
     } /* else if((pck_type == 12) && (TOS_NODE_ID == 0x1205)) */
     /* { // only T:0x1205 will handle this case */
     /*   radio_msg_12* msg12 = (radio_msg_12*) payload; */
@@ -493,6 +510,14 @@ implementation // the implementation part
     /*   am_send(BASE_STATION_ID, &dis_packet, sizeof(radio_msg_12)); */
     /*   printf("fw data to 0x%04X\n", BASE_STATION_ID); */
     /* } */
+    else if((pck_type == 13) && 
+	    ((TOS_NODE_ID == 0x2728) || (TOS_NODE_ID == 0x3529)))
+    {
+      radio_msg_13* msg13 = (radio_msg_13*) payload;
+      radio_msg_13* pck13_fw = (radio_msg_13*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_13));
+      memcpy(pck13_fw, msg13, sizeof(radio_msg_13));
+      fw_data(src_addr, &dis_packet, sizeof(radio_msg_13));
+    }
 
     printfflush();
     return bufPtr;

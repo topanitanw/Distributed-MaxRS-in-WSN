@@ -84,6 +84,13 @@ typedef nx_struct radio_type_9_msg
 /*   nx_uint16_t sensors_32[32]; */
 /* } radio_msg_12; */
 
+
+typedef nx_struct radio_type_13_msg 
+{
+  nx_uint8_t pck_type;
+  nx_uint16_t val;
+} radio_msg_13;
+
 // define constants based on telosb node id
 enum {
 /* #if TOS_NODE_ID == 0x1205 */
