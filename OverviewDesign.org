@@ -3,7 +3,66 @@
 #+STARTUP: overview indent hidestars
 #+TODO: TODO IN-PROGRESS WAITING DONE
 #+PRIORITIES: A C A
-#+TITLE today's plan
+#+TITLE Demo Max RS 
+
+* GUI 
+** Visualization
+** Determining a required parameter (threshold of a light sensor)
+*** selection 
+1. temperature in C or light sensor (50 - 1800)
+2. energy threshold
+3. updated period (assume that it should be at least 10 seconds)
+** a button to resend the setup packet
+
+* Cluster head [8 nodes/1 cluster head]
+** Disseminate the threshold to other cluster heads and nodes
+** Calculate the slab-file information for the local cluster
+** Sending and calculating the slab info every 5 seconds
+
+* Individual nodes
+** Receive and save it
+** When awake, they report their readings to the local cluster-head if
+the reading is above the threshold. If not, continue sleeping.
+** Sleeping time = 2 seconds
+
+* Algorithm
+** how to calculate the slab file 
+** each cluster head / the basestation knows nodes' location ???
+** values of [d1, d2] (R), [l1, l2] (size of the deployment area) 
+The size of the retangular area is based on the energy threshold.
+** flooding any sensor -> reset all sensors
+
+* Issues
+** Telosb
+*** DONE TOSH_DATA_LENGTH = the maximum length of the payload 
+changed from 28 to 128 in 
+./opt/tinyos-2.1.2/tos/chips/cc2420/CC2420.h
+** SS 
+*** Library
+**** FR SS 
+***** Available only vector
+**** Base Station
+***** Available vector and arraylist
+* Updated Period 
+** 1 Plan
+rx    .5    1|0    .5   1|0    .5   1|0
+ | <3> | <3> | <3> | <3> | <3> | <3> | <3> |
+ |     | Cen | Dis | Cen | Dis | Cen | ... |
+- Whenever we receive the setup packet, set up the timer 
+  Dis_Timer = full updated period
+  Cen_Timer = half updated period
+- Cen_Timer will fire first. The next updated period the centralized
+  timer will skip and let the distributed algorithm to send the data.
+** 2 Plan 
+- Before the distribuited algorithm ends, set the centralized algorithm.
+- When the centralized algorithm ends, set the distributed algorithm.
+
+* Telosb Unit Conversion
+** Light Sensor raw -> lux
+lux = 2.5 * 625.0 * (data /4096.0)
+** Temp Sensor raw -> celcius
+celcius = -39.6 + (0.01 * data)
+farenheit = ((9.0 * celcius) / 5.0) + 32.0
 
 * DONE Equipments
 ** [32/32] telosbs + [4/4] spare telosbs
@@ -13,9 +72,38 @@
 ** [72/72] battery cells
 
 * DONE Node Deployment
+** Sniffer node
+- Node id: 0x01
+- Pressing the user defined button will send the reset package to 
+  all telosb nodes.
+- it can read all broadcasted data from the sun spots
 ** B:0x7F38
+*** B:0x789B for debugging 
+*** TODO LED Left -> Right
+- 0 Green: start + sending the reset message
+- 1 Green: setup
+- 2 Green: receive the data back from the T:0x1205
+- 3 
+- 4 
+- 6 
+- 5 
+- 7 Green: receive the reset message
 ** S:Node ID for Sun Spots only for the last 16 bits of its IP address
+*** TODO LED Left -> Right
+- 0 Green: start
+- 1 Green: setup
+- 2 Green: receive pck_type 5 Only for T:0x7EBA
+- 3 Green: receive pck_type 6 Only for T:0x7F45
+- 4 
+- 6 
+- 5 
+- 7
+- 8
 ** T:Node ID for telosbs -> 16 bits 0xABCD
+- LED 
+  Red 0: Turn on
+  Blue 1: Light sensor
+  Yellow 2: Temp sensor
 - A = a cluster number range: {0-3}
 - B = a node number in a cluster range: {0-7}
 - CD = a decimal node id within the area of deployment range: {0-31}
@@ -32,33 +120,79 @@
 | 6 | T:0x2526 | T:0x2627 | T:0x2728 | T:0x3529 | T:0x3630 | T:0x3731 |
 |---+----------+----------+----------+----------+----------+----------|
 
-* IN-PROGRESS Communication
-** Telosb data
-*** Node ID 16 bits
-*** Reading values of Sensors
-- light sensor HamamatsuS1087ParC() = 16 bits
-- temperature sensor SensirionSht11C() as TSensor = 16 bits
-
-** Packages and Message types: 
-|-----+----------------+-------------------+-------------+------------+-------|
-| No. | payload        | from              | to          | Purpose    |  Bits |
-|-----+----------------+-------------------+-------------+------------+-------|
-|   0 | constant       | installing        | all         | Reset      |     8 |
-|   1 | updated period | base, sun, telosb | sun, telosb | setup      |     8 |
-|   2 | light sensor   | telosb            | sun spot    | data trans |    16 |
-|   3 | temp sensor    | telosb            | sun spot    | data trans |    16 |
-|   4 | light, temp    | telosb            | sun spot    | data trans | 16+16 |
-|   5 | 8 bits         | HC:2, 3  <=>      | telosb      | feedback   |     8 |
-|   6 | 16 bits        | HC:0  <=>         | telosb      | feedback   |    16 |
-|   7 | 32 bits        | HC:1  <=>         | telosb      | feedback   |    32 |
-|-----+----------------+-------------------+-------------+------------+-------|
-@Note: No. 5, 6 and 7 are the testing pcks.
-
+* DONE Communication
 ** GUI
 *** selection 
 1. temperature or light sensor
 2. energy threshold
 3. updated period (assume that it should be at least 10 seconds)
+
+** Packages and Message types: 
+|-----------------+--------+-------------------+-------------+-------------+------|
+| payload         |    No. | from              | to          | Purpose     | Byte |
+|-----------------+--------+-------------------+-------------+-------------+------|
+| constant        |      0 | installing        | all         | Reset       |    1 |
+| updated period  |      1 | base, sun, telosb | sun, telosb | setup       |  1+1 |
+| , pck type      |        |                   |             |             |      |
+| light sensor    |      2 | telosb            | sun spot    | data trans  |    2 |
+| temp sensor     |      3 | telosb            | sun spot    | data trans  |    2 |
+| light, temp     |      4 | telosb            | sun spot    | data trans  |  2+2 |
+| 8 bytes         |      5 | HC:2, 3  <=>      | telosb      | feedback    |    8 |
+| 16 bytes        |      6 | HC:0  <=>         | telosb      | feedback    |   16 |
+| 32 bytes        |      7 | HC:1  <=>         | telosb      | feedback    |   32 |
+|-----------------+--------+-------------------+-------------+-------------+------|
+| light sensor    |      8 | all nodes         | BST         | centralized |    1 |
+| temp sensor     |      9 | all nodes         | BST         | centralized |    1 |
+|-----------------+--------+-------------------+-------------+-------------+------|
+| 8 bytes light + | 10 = 5 | telosbs           | sun spot    | data trans  |  8+1 |
+| node_count      |        |                   |             |             |      |
+|-----------------+--------+-------------------+-------------+-------------+------|
+| 16 bytes temp + | 11 = 6 | telosbs           | sun spot    | data trans  | 16+1 |
+| node_count      |        |                   |             |             |      |
+|-----------------+--------+-------------------+-------------+-------------+------|
+| 8 bytes both +  | 12 = 7 | telosbs           | sun spot    | data trans  | 32+1 |
+| node_count      |        |                   |             |             |      |
+|-----------------+--------+-------------------+-------------+-------------+------|
+| 2 byte          |     13 | telosb            | sun, telsob | testing pck |    2 |
+|-----------------+--------+-------------------+-------------+-------------+------|
+@Note: Pck No. 0 broadcast constant = 0
+@Note: No. 1 pck type is either 2, 3, or 4. 
+@Note: No. 5, 6 and 7 are the testing pcks.
+@Note: all types of the package must have package type = 8 bits.
+|-------+----------+-----------+---|
+|   No. | from     | to        |   |
+|-------+----------+-----------+---|
+|     0 | any      | all       |   |
+|-------+----------+-----------+---|
+|     1 | base     | T:0x1205  |   |
+|       | T:0x1205 | S:0x7F45  |   |
+|       | S:0x7F45 | cluster   | 1 |
+|       | T:0x1003 | T:0x0202  |   |
+|       | T:0x0202 | S:0x7EBA  |   |
+|       | S:0x7EBA | cluster   | 1 |
+|       | T:0x0712 | T:0x2218  |   |
+|       | T:0x2218 | S:0x79A3  |   |
+|       | S:0x79A3 | cluster   | 1 |
+|       | T:0x1715 | T:0x3221  |   |
+|       | T:0x3221 | S:0x7997  |   |
+|       | S:0x7997 | cluster   | 1 |
+|-------+----------+-----------+---|
+| 2,3,4 | cluster  | principal |   |
+|-------+----------+-----------+---|
+|     5 | S:0x79A3 | T:0x2218  |   |
+|       | S:0x7997 | T:0x3221  |   |
+|       | T:0x2218 | T:0x0712  |   |
+|       | T:0x0712 | S:0x7EBA  |   |
+|       | T:0x3221 | T:0x1715  |   |
+|       | T:0x1715 | S:0x7F45  |   |
+|-------+----------+-----------+---|
+|     6 | S:0x7EBA | T:0x0202  |   |
+|       | T:0x0202 | T:0x1003  |   |
+|       | T:0x7F45 | S:0x7F45  |   |
+|-------+----------+-----------+---|
+|     7 | S:0x7F45 | T:0x1205  |   |
+|       | T:0x1205 | base      |   |
+|-------+----------+-----------+---|
 
 ** Basestation
 |---------+----------+--------+----------+-------+----------+------------|
@@ -69,41 +203,54 @@
 |---------+----------+--------+----------+-------+----------+------------|
 
 ** Head of the cluster
-|-------------+--------------+--------+---------+-------+----------|
-| Cluster No. | Head Cluster | Tx, Rx |  Telosb |  Type | Purpose  |
-|-------------+--------------+--------+---------+-------+----------|
-|           1 |       0x7F45 | <-     |  0x1205 |     1 | setup    |
-|             |              | <-     |         | 2,3,4 | data     |
-|             |              | ->     |         |     7 | feedback |
-|             |              | ->     |  0x1003 |     1 | setup    |
-|             |              | <-     |         | 2,3,4 | data     |
-|             |              | <-     |         |     6 | feedback |
-|             |              | ->     |  0x1715 |     1 | setup    |
-|             |              | <-     |         | 2,3,4 | data     |
-|             |              | <-     |         |     5 | feedback |
-|             |              | ->     | in Clus |     1 | setup    |
-|-------------+--------------+--------+---------+-------+----------|
-|           0 |       0x7EBA | <-     |  0x0202 |     1 | setup    |
-|             |              | <-     |         | 2,3,4 | data     |
-|             |              | ->     |         |     6 | feedback |
-|             |              | ->     |  0x0712 |     1 | setup    |
-|             |              | <-     |         | 2,3,4 | data     |
-|             |              | <-     |         |     5 | feedback |
-|             |              | ->     | in Clus |     1 | setup    |
-|-------------+--------------+--------+---------+-------+----------|
-|           2 |       0x79A3 | <-     |  0x2218 |     1 | setup    |
-|             |              | <-     |         | 2,3,4 | data     |
-|             |              | ->     |         |     5 | feedback |
-|             |              | ->     | in Clus |     1 | setup    |
-|-------------+--------------+--------+---------+-------+----------|
-|           3 |       0x7997 | <-     |  0x3221 |     1 | setup    |
-|             |              | <-     |         | 2,3,4 | data     |
-|             |              | ->     |         |     5 | feedback |
-|             |              | ->     | in Clus |     1 | setup    |
-|-------------+--------------+--------+---------+-------+----------|
+|-------------+--------------+--------+---------+-------+----------+---|
+| Cluster No. | Head Cluster | Tx, Rx | Telosb  |  Type | Purpose  |   |
+|-------------+--------------+--------+---------+-------+----------+---|
+|           1 | S:0x7F45     | <-     | 0x1205  |     1 | setup    |   |
+|             |              | <-     |         | 2,3,4 | data     | * |
+|             |              | ->     |         |     7 | feedback |   |
+|             |              | ->     | 0x1003  |     1 | setup    |   |
+|             |              | <-     |         | 2,3,4 | data     | * |
+|             |              | <-     |         |     6 | feedback |   |
+|             |              | ->     | 0x1715  |     1 | setup    |   |
+|             |              | <-     |         | 2,3,4 | data     | * |
+|             |              | <-     |         |     5 | feedback |   |
+|             |              | ->     | in Clus |     1 | setup    |   |
+|             |              | <-     | Clus    | 2,3,4 | data     | * |
+|-------------+--------------+--------+---------+-------+----------+---|
+|           0 | S:0x7EBA     | <-     | 0x0202  |     1 | setup    |   |
+|             |              | <-     |         | 2,3,4 | data     | * |
+|             |              | ->     |         |     6 | feedback |   |
+|             |              | ->     | 0x0712  |     1 | setup    |   |
+|             |              | <-     |         | 2,3,4 | data     |   |
+|             |              | <-     |         |     5 | feedback |   |
+|             |              | ->     | in Clus |     1 | setup    |   |
+|             |              | <-     | Cluster | 2,3,4 | data     | * |
+|-------------+--------------+--------+---------+-------+----------+---|
+|           2 | S:0x79A3     | <-     | 0x2218  |     1 | setup    |   |
+|             |              | <-     |         | 2,3,4 | data     | * |
+|             |              | ->     |         |     5 | feedback |   |
+|             |              | ->     | in Clus |     1 | setup    |   |
+|             |              | <-     | Cluster | 2,3,4 | data     | * |
+|-------------+--------------+--------+---------+-------+----------+---|
+|           3 | S:0x7997     | <-     | 0x3221  |     1 | setup    |   |
+|             |              | <-     |         | 2,3,4 | data     | * |
+|             |              | ->     |         |     5 | feedback |   |
+|             |              | ->     | in Clus |     1 | setup    |   |
+|             |              | <-     | Cluster | 2,3,4 | data     | * |
+|-------------+--------------+--------+---------+-------+----------+---|
 @Note: Every node must receive the reset packages.
 
-** Telosb
+** Telosb data
+*** Node ID 16 bits
+*** LED 
+**** 0 Red: start
+**** 1 Blue: temp (C) > temp threshold
+**** 2 Yellow: light > light threshold
+*** Reading values of Sensors
+- light sensor HamamatsuS1087ParC() = 16 bits
+- temperature sensor SensirionSht11C() as TSensor = 16 bits
+*** Corner Telosb Nodes
 |---------+----------+--------+----------+-------+----------+------------|
 | Cluster | Node ID  | Tx, Rx | Sun Spot |  Type | Purpose  | How 2 send |
 |---------+----------+--------+----------+-------+----------+------------|
