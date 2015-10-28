@@ -23,6 +23,8 @@
  *      - modified the receive function to correspond with 
  *      new packages 
  *   comment out the 6
+ *   7: change the setup package and edit the code in the receive
+ *      function
  * Author: Panitan Wongse-ammat
  */
 
@@ -75,7 +77,8 @@ implementation // the implementation part
   uint16_t PRINCIPLE_ID = 0;
   uint16_t T_BUDDY_ID = 0;
   uint16_t T_BUDDY_ID2 = 0; // only for T:0x2728
-  uint8_t T_GROUP_ID = 0;
+  uint8_t  T_GROUP_ID = 0;
+  uint16_t BASE_STATION_ID = 0;    //  uint16_t in AM.h
   // depends on how to send the pck1 to other nodes
   bool FW_PCK1_TO_BUDDY = TRUE;
   // if the light sensor value is read and sent,
@@ -98,6 +101,8 @@ implementation // the implementation part
       having_buddy = FALSE; 
       connecting_node = TRUE;
       FW_PCK1_TO_BUDDY = FALSE;
+      // if the base station is changed, 
+      BASE_STATION_ID = 0x7EB7;    //  uint16_t in AM.h
     } else if(TOS_NODE_ID == 0x1003)
     {
       PRINCIPLE_ID = 0X7F45;
@@ -182,7 +187,12 @@ implementation // the implementation part
     call Leds.led1Off();
     call Leds.led2Off();
   }
-  void am_send(uint dst_addr, void* pck_ptr, uint sz) {
+
+  void am_send(am_addr_t dst_addr, void* pck_ptr, uint sz) {
+    // send the package
+    // @dst_addr: am_addr_t the destination address
+    // @pck_ptr: void* the pointer to the package
+    // @sz: uint the size of the package
     if(!busy)
     {
       error_t err = call AMSend.send(dst_addr, pck_ptr, sz);
@@ -193,8 +203,11 @@ implementation // the implementation part
       }
     }
   }
-  void fw_data(am_addr_t src_addr, void* pck_ptr, uint8_t sz)
-  { // forward the data  either to principle or to buddy
+  void fw_data(am_addr_t src_addr, void* pck_ptr, uint8_t sz) {
+    // forward the data  either to principle or to buddy
+    // @src_addr: am_addr_t the address of the source
+    // @pck_ptr: void* the pointer to the package
+    // @sz: uint the size of the package
     if(src_addr == PRINCIPLE_ID)
     {
       am_send(T_BUDDY_ID, pck_ptr, sz);
@@ -274,8 +287,8 @@ implementation // the implementation part
     printf("*** Radio initialized ***\n");
   }
 
-  event void Cen_Timer.fired() 
-  {
+  event void Cen_Timer.fired() {
+    // if fired, send teh data to the base station
     if(cen_timer == 0)
     { // skip
       cen_timer = 1;
@@ -304,8 +317,8 @@ implementation // the implementation part
     }
   }
 
-  event void Dis_Timer.fired() 
-  { 
+  event void Dis_Timer.fired() {
+    // if fired, send the data to the principle node
     printf("\n^^^ Dis Timer fired ^^^\n");
     if((tsensor_trigger == FALSE) && (lsensor_trigger == TRUE))
     {
@@ -355,7 +368,7 @@ implementation // the implementation part
     }
     dst_addr = call AMPacket.destination(bufPtr);
     printf("Data type: %u, len: %u\n", pck_type, len);
-    printf("Dst Addr: %04X | Src Addr: %04X\n", dst_addr, src_addr);
+    printf("Dst Addr: 0x%04X | Src Addr: 0x%04X\n", dst_addr, src_addr);
 
     if(pck_type == 0)
     { // reset
@@ -367,60 +380,57 @@ implementation // the implementation part
 	WDTCTL = WDT_ARST_1_9;
 	while(1);
       }
-    } else if(pck_type == 1)
+    } else if(pck_type == 15)
     { // setup
-      radio_msg_1* msg1 = (radio_msg_1*) payload;
-      printf("Msg1 [(delay: %d), (pck_type: %d)]\n", 
-	     msg1->delay_s, msg1->sensor_type);
+      radio_msg_t* msg = (radio_msg_t*) payload;
+      uint16_t delay_sec = msg->data[1];
+      uint16_t sensor_type = msg->data[2];
       if(src_addr == PRINCIPLE_ID)
       { 
 	// the principle mode will broadcast the pck1
 	// telosb nodes should check the src_addr == 
 	// their principle node
 	// select the message type
+	printf("Msg1 %d [(delay: %d), (sensor_type: %d)]\n", 
+	       pck_type, delay_sec, sensor_type);
 	printf("Save the setup\n");
 	reset_setup_values();
 	// set up the sensor config
-	if(msg1->sensor_type == 2)
+	if(sensor_type == 2)
 	{
 	  lsensor_trigger = TRUE;
 	  call Leds.led1On();
-	} else if(msg1->sensor_type == 3)
+	} else if(sensor_type == 3)
 	{
 	  tsensor_trigger = TRUE;
 	  call Leds.led2On();
-	} else if(msg1->sensor_type == 4)
-	{
-	  lsensor_trigger = TRUE;
-	  call Leds.led1On();
-	  tsensor_trigger = TRUE;
-	  call Leds.led2On();
-	} // if(src_addr == PRINCIPLE_ID)
+	}
+	BASE_STATION_ID = msg->data[0];
 
 	if(having_buddy && FW_PCK1_TO_BUDDY)
 	{ // forward to the buddy telosb
-	  radio_msg_1* pck1_fw = (radio_msg_1*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_1));
+	  radio_msg_t* pck1_fw = (radio_msg_t*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_1));
 	  printf("fw to 0x%04X\n", T_BUDDY_ID);
 	  // void *memcpy(void *dest, const void *src, size_t n)
-	  memcpy(pck1_fw, msg1, sizeof(radio_msg_1));
-	  am_send(T_BUDDY_ID, &dis_packet, sizeof(radio_msg_1));
+	  memcpy(pck1_fw, msg, sizeof(radio_msg_t));
+	  am_send(T_BUDDY_ID, &dis_packet, sizeof(radio_msg_t));
 	}
 
 	// timer in the millisecond unit
-	call Dis_Timer.startPeriodic(msg1->delay_s * 1000);
-	call Cen_Timer.startPeriodic(msg1->delay_s * 500);
+	call Dis_Timer.startPeriodic(delay_sec * 1000);
+	call Cen_Timer.startPeriodic(delay_sec * 500);
 
       } else if((src_addr == T_BUDDY_ID) ||
 		((src_addr == BASE_STATION_ID) && (TOS_NODE_ID == 0x1205)))
       {
-	  // the connecting node forwards the data to its buddy
-	  // it is T:0x1205 and receive the pck from base station
-	  radio_msg_1* pck1_fw = (radio_msg_1*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_1));
-	  printf("fw to HC: %d S:0x%X\n", T_GROUP_ID, PRINCIPLE_ID);
-	  // void *memcpy(void *dest, const void *src, size_t n)
-	  memcpy(pck1_fw, msg1, sizeof(radio_msg_1));
-	  am_send(PRINCIPLE_ID, &dis_packet, sizeof(radio_msg_1));
-	}
+	// the connecting node forwards the data to its buddy
+	// it is T:0x1205 and receive the pck from base station
+	radio_msg_t* pck1_fw = (radio_msg_t*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_t));
+	printf("fw to HC: %d S:0x%X\n", T_GROUP_ID, PRINCIPLE_ID);
+	// void *memcpy(void *dest, const void *src, size_t n)
+	memcpy(pck1_fw, msg, sizeof(radio_msg_t));
+	am_send(PRINCIPLE_ID, &dis_packet, sizeof(radio_msg_t));
+      }
       // end pck_type == 1
     } else if((pck_type == 5) && 
 	      ((src_addr == T_BUDDY_ID) || 

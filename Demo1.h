@@ -1,5 +1,12 @@
-#ifndef DEMO0_H
-#define DEMO0_H
+#ifndef DEMO_H
+#define DEMO_H
+
+enum {
+  AM_RADIO_SENSE_MSG = 0x25,   //  unit8_t in AM.h : 37 = 0x25
+  // AM_BROADCAST_ADDR = 0xFFFF already defined in AM.h
+  FLOODING_CONSTANT = 0xFF,    //  flooding constant 8 bits
+  MAX_DATA_SZ = 31
+};
 
 typedef nx_struct radio_type_0_msg 
 {
@@ -84,50 +91,16 @@ typedef nx_struct radio_type_9_msg
 /*   nx_uint16_t sensors_32[32]; */
 /* } radio_msg_12; */
 
-
 typedef nx_struct radio_type_13_msg 
 {
   nx_uint8_t pck_type;
   nx_uint16_t val;
 } radio_msg_13;
 
+typedef nx_struct 
+{
+  nx_uint8_t pck_type;
+  nx_int16_t data[MAX_DATA_SZ];
+} radio_msg_t;
 // define constants based on telosb node id
-enum {
-/* #if TOS_NODE_ID == 0x1205 */
-/*   PRINCIPLE_ID = 0X7997, */
-/*   T_NEXT_ID = 0, */
-
-/* #elif TOS_NODE_ID == 0x1003 */
-/*   PRINCIPLE_ID = 0X7F45, */
-/*   T_NEXT_ID = 0x0202, */
-
-/* #elif TOS_NODE_ID == 0x1715 */
-/*   PRINCIPLE_ID = 0X7F45, */
-/*   T_NEXT_ID = 0x3221, */
-
-/* #elif TOS_NODE_ID == 0x3221 */
-/*   PRINCIPLE_ID = 0X7997, */
-/*   T_NEXT_ID = 0x1715, */
-
-/* #elif TOS_NODE_ID == 0x0202 */
-/*   PRINCIPLE_ID = 0X7EBA, */
-/*   T_NEXT_ID = 0x1003, */
-
-/* #elif TOS_NODE_ID == 0x0712 */
-/*   PRINCIPLE_ID = 0X7EBA, */
-/*   T_NEXT_ID = 0x2218, */
-
-/* #elif TOS_NODE_ID == 0x2218 */
-/*   PRINCIPLE_ID = 0X79A3, */
-/*   T_NEXT_ID = 0x0712, */
-
-/* #endif /\* #if *\/ */
-
-  AM_RADIO_SENSE_MSG = 0x25,   //  unit8_t in AM.h : 37 = 0x25
-  // AM_BROADCAST_ADDR = 0xFFFF already defined in AM.h
-  BASE_STATION_ID = 0x789B,    //  uint16_t in AM.h
-  FLOODING_CONSTANT = 0xFF,    //  flooding constant 8 bits
-  LSENSOR_TH = 100, 
-  TSENSOR_TH = 25
-};
-#endif /* DEMO0_H */
+#endif /* DEMO_H */
