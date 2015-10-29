@@ -24,7 +24,7 @@
  *      new packages 
  *   comment out the 6
  *   7: change the setup package and edit the code in the receive
- *      function
+ *      function to save the setup and forward it
  * Author: Panitan Wongse-ammat
  */
 
@@ -78,7 +78,7 @@ implementation // the implementation part
   uint16_t T_BUDDY_ID = 0;
   uint16_t T_BUDDY_ID2 = 0; // only for T:0x2728
   uint8_t  T_GROUP_ID = 0;
-  uint16_t BASE_STATION_ID = 0;    //  uint16_t in AM.h
+  uint16_t BASE_STATION_ID = 0x7F38;    //  uint16_t in AM.h
   // depends on how to send the pck1 to other nodes
   bool FW_PCK1_TO_BUDDY = TRUE;
   // if the light sensor value is read and sent,
@@ -102,7 +102,7 @@ implementation // the implementation part
       connecting_node = TRUE;
       FW_PCK1_TO_BUDDY = FALSE;
       // if the base station is changed, 
-      BASE_STATION_ID = 0x7EB7;    //  uint16_t in AM.h
+      /* BASE_STATION_ID = 0x7EB7;    //  uint16_t in AM.h */
     } else if(TOS_NODE_ID == 0x1003)
     {
       PRINCIPLE_ID = 0X7F45;
@@ -187,7 +187,6 @@ implementation // the implementation part
     call Leds.led1Off();
     call Leds.led2Off();
   }
-
   void am_send(am_addr_t dst_addr, void* pck_ptr, uint sz) {
     // send the package
     // @dst_addr: am_addr_t the destination address
@@ -218,7 +217,6 @@ implementation // the implementation part
       printf("fw data to 0x%04X\n", PRINCIPLE_ID);
     }
   }
-
   void read_sensors() {
     // read sensors based on the setup package
     if(tsensor_trigger)
@@ -237,7 +235,8 @@ implementation // the implementation part
     printf("\n\n\n\n-- Date: %s Time: %s --\n", __DATE__, __TIME__);
     printf("*** Node ID: 0x%04X Group: %d, Principle_id: 0x%X T_BUDDY_ID: 0x%X ***\n",
 	   TOS_NODE_ID, T_GROUP_ID, PRINCIPLE_ID, T_BUDDY_ID);
-    printf("*** Basestation ID: B:0x%04X ***\n\n", BASE_STATION_ID);
+    printf("*** Basestation ID: B:0x%04X B:%d***\n\n", 
+	   BASE_STATION_ID, BASE_STATION_ID);
     /* printf("*** TOSH_DATA_LENGTH: %d ***\n", TOSH_DATA_LENGTH); */
     call CC2420Config.setPanAddr(1);
     call CC2420Config.setChannel(26);
@@ -300,7 +299,7 @@ implementation // the implementation part
       if((tsensor_trigger == FALSE) && (lsensor_trigger == TRUE))
       { // light sensor 
 	radio_msg_8* pck8 = (radio_msg_8*) call Packet.getPayload(&cen_packet, sizeof(radio_msg_8));
-	printf("Msg8 send to 0x%04X\n", PRINCIPLE_ID);
+	printf("Msg8 send to 0x%04X\n", BASE_STATION_ID);
 	pck8->pck_type = 8;
 	pck8->lsensor_reading = lsensor_reading;
 	am_send(BASE_STATION_ID, &cen_packet, sizeof(radio_msg_8));
@@ -308,7 +307,7 @@ implementation // the implementation part
       } else if((tsensor_trigger == TRUE) && (lsensor_trigger == FALSE))
       { // temp sensor 
 	radio_msg_9* pck9 = (radio_msg_9*) call Packet.getPayload(&cen_packet, sizeof(radio_msg_9));
-	printf("Msg9 send to 0x%04X\n", PRINCIPLE_ID);
+	printf("Msg9 send to 0x%04X\n", BASE_STATION_ID);
 	pck9->pck_type = 9;
 	pck9->tsensor_reading = tsensor_reading;
 	am_send(BASE_STATION_ID, &cen_packet, sizeof(radio_msg_9));
@@ -405,7 +404,7 @@ implementation // the implementation part
 	  tsensor_trigger = TRUE;
 	  call Leds.led2On();
 	}
-	BASE_STATION_ID = msg->data[0];
+	// BASE_STATION_ID = msg->data[0];
 
 	if(having_buddy && FW_PCK1_TO_BUDDY)
 	{ // forward to the buddy telosb

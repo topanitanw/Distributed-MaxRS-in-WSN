@@ -2,7 +2,9 @@
 #define DEMO_H
 
 enum {
-  AM_RADIO_SENSE_MSG = 0x25,   //  unit8_t in AM.h : 37 = 0x25
+  // unit8_t in AM.h : 37 = 0x25
+  // 65 = 0x41, 
+  AM_RADIO_SENSE_MSG = 0x41,   
   // AM_BROADCAST_ADDR = 0xFFFF already defined in AM.h
   FLOODING_CONSTANT = 0xFF,    //  flooding constant 8 bits
   MAX_DATA_SZ = 31
