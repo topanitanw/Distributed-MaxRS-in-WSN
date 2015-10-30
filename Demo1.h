@@ -7,7 +7,7 @@ enum {
   AM_RADIO_SENSE_MSG = 0x41,   
   // AM_BROADCAST_ADDR = 0xFFFF already defined in AM.h
   FLOODING_CONSTANT = 0xFF,    //  flooding constant 8 bits
-  MAX_DATA_SZ = 31
+  MAX_DATA_SZ = 44
 };
 
 typedef nx_struct radio_type_0_msg 

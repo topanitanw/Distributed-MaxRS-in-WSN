@@ -25,6 +25,9 @@
  *   comment out the 6
  *   7: change the setup package and edit the code in the receive
  *      function to save the setup and forward it
+ *      ### have the radio_msg_t
+ *   8: edit the receiver function for all clusters
+ *      to handle the pck_type 5, 13, 6
  * Author: Panitan Wongse-ammat
  */
 
@@ -436,11 +439,11 @@ implementation // the implementation part
 	       ((src_addr == PRINCIPLE_ID) && (connecting_node == TRUE))))
     { // forward the package to its buddy or its principle
       uint8_t i = 0;
-      radio_msg_5* msg5 = (radio_msg_5*) payload;
-      radio_msg_5* pck5_fw = (radio_msg_5*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_5));
+      radio_msg_t* msg_t = (radio_msg_t*) payload;
+      radio_msg_t* pck_fw = (radio_msg_t*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_t));
       // void *memcpy(void *dest, const void *src, size_t n)
-      memcpy(pck5_fw, msg5, sizeof(radio_msg_5));
-      fw_data(src_addr, &dis_packet, sizeof(radio_msg_5));
+      memcpy(pck_fw, msg_t, sizeof(radio_msg_t));
+      fw_data(src_addr, &dis_packet, sizeof(radio_msg_t));
       /* if(src_addr == PRINCIPLE_ID) */
       /* { */
       /* 	am_send(T_BUDDY_ID, &dis_packet, sizeof(radio_msg_5)); */
@@ -473,10 +476,10 @@ implementation // the implementation part
 	      ((src_addr == T_BUDDY_ID) || 
 	       ((src_addr == PRINCIPLE_ID) && (connecting_node == TRUE))))
     { // forward the package to its buddy or its principle
-      radio_msg_6* msg6 = (radio_msg_6*) payload;
-      radio_msg_6* pck6_fw = (radio_msg_6*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_6));
-      memcpy(pck6_fw, msg6, sizeof(radio_msg_6));
-      fw_data(src_addr, &dis_packet, sizeof(radio_msg_6));
+      radio_msg_t* msg_t = (radio_msg_t*) payload;
+      radio_msg_t* pck_fw = (radio_msg_t*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_t));
+      memcpy(pck_fw, msg_t, sizeof(radio_msg_t));
+      fw_data(src_addr, &dis_packet, sizeof(radio_msg_t));
       /* if(src_addr == PRINCIPLE_ID) */
       /* { */
       /* 	am_send(T_BUDDY_ID, &dis_packet, sizeof(radio_msg_6)); */
@@ -506,10 +509,10 @@ implementation // the implementation part
 	       
     } else if((pck_type == 7) && (TOS_NODE_ID == 0x1205))
     { // only T:0x1205 will handle this case
-      radio_msg_7* msg7 = (radio_msg_7*) payload;
-      radio_msg_7* pck7_fw = (radio_msg_7*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_7));
-      memcpy(pck7_fw, msg7, sizeof(radio_msg_7));
-      am_send(BASE_STATION_ID, &dis_packet, sizeof(radio_msg_7));
+      radio_msg_t* msg_t = (radio_msg_t*) payload;
+      radio_msg_t* pck_fw = (radio_msg_t*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_t));
+      memcpy(pck_fw, msg_t, sizeof(radio_msg_t));
+      am_send(BASE_STATION_ID, &dis_packet, sizeof(radio_msg_t));
       printf("fw data to 0x%04X\n", BASE_STATION_ID);
     } /* else if((pck_type == 12) && (TOS_NODE_ID == 0x1205)) */
     /* { // only T:0x1205 will handle this case */
@@ -522,10 +525,10 @@ implementation // the implementation part
     else if((pck_type == 13) && 
 	    ((TOS_NODE_ID == 0x2728) || (TOS_NODE_ID == 0x3529)))
     {
-      radio_msg_13* msg13 = (radio_msg_13*) payload;
-      radio_msg_13* pck13_fw = (radio_msg_13*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_13));
-      memcpy(pck13_fw, msg13, sizeof(radio_msg_13));
-      fw_data(src_addr, &dis_packet, sizeof(radio_msg_13));
+      radio_msg_t* msg_t = (radio_msg_t*) payload;
+      radio_msg_t* pck_fw = (radio_msg_t*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_t));
+      memcpy(pck_fw, msg_t, sizeof(radio_msg_t));
+      fw_data(src_addr, &dis_packet, sizeof(radio_msg_t));
     }
 
     printfflush();
