@@ -27,7 +27,7 @@
  *      function to save the setup and forward it
  *      ### have the radio_msg_t
  *   8: edit the receiver function for all clusters
- *      to handle the pck_type 5, 13, 6
+ *      to handle all pck_type
  * Author: Panitan Wongse-ammat
  */
 
@@ -420,7 +420,8 @@ implementation // the implementation part
 
 	// timer in the millisecond unit
 	call Dis_Timer.startPeriodic(delay_sec * 1000);
-	call Cen_Timer.startPeriodic(delay_sec * 500);
+	/* call Cen_Timer.startPeriodic(delay_sec * 500); */
+	call Cen_Timer.startPeriodic(1789); // 1.789 sec
 
       } else if((src_addr == T_BUDDY_ID) ||
 		((src_addr == BASE_STATION_ID) && (TOS_NODE_ID == 0x1205)))
