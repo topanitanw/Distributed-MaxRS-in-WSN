@@ -193,8 +193,8 @@ implementation // the implementation part
       }
     }
   }
-  void fw_data(am_addr_t src_addr, void* pck_ptr, uint8_t sz)
-  { // forward the data  either to principle or to buddy
+  void fw_data(am_addr_t src_addr, void* pck_ptr, uint8_t sz) {
+    // forward the data  either to principle or to buddy
     if(src_addr == PRINCIPLE_ID)
     {
       am_send(T_BUDDY_ID, pck_ptr, sz);
@@ -353,9 +353,10 @@ implementation // the implementation part
       printfflush();
       return bufPtr;
     }
+    
     dst_addr = call AMPacket.destination(bufPtr);
     printf("Data type: %u, len: %u\n", pck_type, len);
-    printf("Dst Addr: %04X | Src Addr: %04X\n", dst_addr, src_addr);
+    printf("Dst Addr: 0x%04X | Src Addr: 0x%04X\n", dst_addr, src_addr);
 
     if(pck_type == 0)
     { // reset
