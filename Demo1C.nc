@@ -251,7 +251,6 @@ implementation // the implementation part
 
   event void TRead.readDone(error_t result, uint16_t data) 
   { // when the Temperature sensor is done, process the data
-    // call TRead.read();
     if (result == SUCCESS)
     {
       int16_t temp = -38.4 + 0.0098 * data; // temp = 30c or 85f when data = 7000
@@ -338,15 +337,7 @@ implementation // the implementation part
       pck3->tsensor_reading = tsensor_reading;
       am_send(PRINCIPLE_ID, &dis_packet, sizeof(radio_msg_3));
 
-    }/*  else if((tsensor_trigger == TRUE) && (lsensor_trigger == TRUE)) */
-    /* { */
-    /*   radio_msg_4* pck4 = (radio_msg_4*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_4)); */
-    /*   printf("Msg4 send to 0x%04X\n", PRINCIPLE_ID); */
-    /*   pck4->type = 4; */
-    /*   pck4->lsensor_reading = lsensor_reading; */
-    /*   pck4->tsensor_reading = tsensor_reading; */
-    /*   am_send(PRINCIPLE_ID, &dis_packet, sizeof(radio_msg_4)); */
-    /* } */
+    }
     printf("^^^ Dis Timer fired end ^^^\n");
     printfflush();
   } // event void Dis_Timer.fired() 
@@ -411,7 +402,7 @@ implementation // the implementation part
 
 	if(having_buddy && FW_PCK1_TO_BUDDY)
 	{ // forward to the buddy telosb
-	  radio_msg_t* pck1_fw = (radio_msg_t*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_1));
+	  radio_msg_t* pck1_fw = (radio_msg_t*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_t));
 	  printf("fw to 0x%04X\n", T_BUDDY_ID);
 	  // void *memcpy(void *dest, const void *src, size_t n)
 	  memcpy(pck1_fw, msg, sizeof(radio_msg_t));

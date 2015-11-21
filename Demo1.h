@@ -1,5 +1,5 @@
-#ifndef DEMO_H
-#define DEMO_H
+#ifndef DEMO1_H
+#define DEMO1_H
 
 enum {
   // unit8_t in AM.h : 37 = 0x25
@@ -10,18 +10,19 @@ enum {
   MAX_DATA_SZ = 44
 };
 
+// package 0, 2, 3, 8, 9
 typedef nx_struct radio_type_0_msg 
 {
   nx_uint8_t type;
   nx_uint8_t flooding;
 } radio_msg_0;
 
-typedef nx_struct radio_type_1_msg 
-{
-  nx_uint8_t type;
-  nx_uint8_t delay_s;
-  nx_uint8_t sensor_type;
-} radio_msg_1;
+/* typedef nx_struct radio_type_1_msg  */
+/* { */
+/*   nx_uint8_t type; */
+/*   nx_uint8_t delay_s; */
+/*   nx_uint8_t sensor_type; */
+/* } radio_msg_1; */
 
 typedef nx_struct radio_type_2_msg 
 {
@@ -35,30 +36,23 @@ typedef nx_struct radio_type_3_msg
   nx_uint16_t tsensor_reading;
 } radio_msg_3;
 
-typedef nx_struct radio_type_4_msg 
-{
-  nx_uint8_t type;
-  nx_uint16_t lsensor_reading;
-  nx_uint16_t tsensor_reading;
-} radio_msg_4;
+/* typedef nx_struct radio_type_5_msg  */
+/* { */
+/*   nx_uint8_t type; */
+/*   nx_uint16_t sensors_8[8]; */
+/* } radio_msg_5; */
 
-typedef nx_struct radio_type_5_msg 
-{
-  nx_uint8_t type;
-  nx_uint16_t sensors_8[8];
-} radio_msg_5;
+/* typedef nx_struct radio_type_6_msg  */
+/* { */
+/*   nx_uint8_t type; */
+/*   nx_uint16_t sensors_16[16]; */
+/* } radio_msg_6; */
 
-typedef nx_struct radio_type_6_msg 
-{
-  nx_uint8_t type;
-  nx_uint16_t sensors_16[16];
-} radio_msg_6;
-
-typedef nx_struct radio_type_7_msg 
-{
-  nx_uint8_t type;
-  nx_uint16_t sensors_32[32];
-} radio_msg_7;
+/* typedef nx_struct radio_type_7_msg  */
+/* { */
+/*   nx_uint8_t type; */
+/*   nx_uint16_t sensors_32[32]; */
+/* } radio_msg_7; */
 
 typedef nx_struct radio_type_8_msg 
 {
@@ -93,11 +87,11 @@ typedef nx_struct radio_type_9_msg
 /*   nx_uint16_t sensors_32[32]; */
 /* } radio_msg_12; */
 
-typedef nx_struct radio_type_13_msg 
-{
-  nx_uint8_t pck_type;
-  nx_uint16_t val;
-} radio_msg_13;
+/* typedef nx_struct radio_type_13_msg  */
+/* { */
+/*   nx_uint8_t pck_type; */
+/*   nx_uint16_t val; */
+/* } radio_msg_13; */
 
 typedef nx_struct 
 {
@@ -105,4 +99,4 @@ typedef nx_struct
   nx_int16_t data[MAX_DATA_SZ];
 } radio_msg_t;
 // define constants based on telosb node id
-#endif /* DEMO_H */
+#endif /* DEMO1_H */
