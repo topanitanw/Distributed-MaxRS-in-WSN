@@ -17,13 +17,6 @@ typedef nx_struct radio_type_0_msg
   nx_uint8_t flooding;
 } radio_msg_0;
 
-/* typedef nx_struct radio_type_1_msg  */
-/* { */
-/*   nx_uint8_t type; */
-/*   nx_uint8_t delay_s; */
-/*   nx_uint8_t sensor_type; */
-/* } radio_msg_1; */
-
 typedef nx_struct radio_type_2_msg 
 {
   nx_uint8_t type;
@@ -36,57 +29,12 @@ typedef nx_struct radio_type_3_msg
   nx_uint16_t tsensor_reading;
 } radio_msg_3;
 
-/* typedef nx_struct radio_type_5_msg  */
-/* { */
-/*   nx_uint8_t type; */
-/*   nx_uint16_t sensors_8[8]; */
-/* } radio_msg_5; */
-
-/* typedef nx_struct radio_type_6_msg  */
-/* { */
-/*   nx_uint8_t type; */
-/*   nx_uint16_t sensors_16[16]; */
-/* } radio_msg_6; */
-
-/* typedef nx_struct radio_type_7_msg */
-/* { */
-/*   nx_uint8_t type; */
-/*   nx_uint16_t sensors_32[32]; */
-/* } radio_msg_7; */
-
 // for the package type 8 and 9
 typedef nx_struct radio_type_89_msg 
 {
   nx_uint8_t pck_type;
   nx_uint16_t sensor_reading;
 } radio_msg_89;
-
-/* typedef nx_struct radio_type_10_msg  */
-/* { */
-/*   nx_uint8_t type; */
-/*   nx_uint8_t node_count; */
-/*   nx_uint16_t sensors_8[8]; */
-/* } radio_msg_10; */
-
-/* typedef nx_struct radio_type_11_msg  */
-/* { */
-/*   nx_uint8_t type; */
-/*   nx_uint8_t node_count; */
-/*   nx_uint16_t sensors_16[16]; */
-/* } radio_msg_11; */
-
-/* typedef nx_struct radio_type_12_msg  */
-/* { */
-/*   nx_uint8_t type; */
-/*   nx_uint8_t node_count; */
-/*   nx_uint16_t sensors_32[32]; */
-/* } radio_msg_12; */
-
-/* typedef nx_struct radio_type_13_msg  */
-/* { */
-/*   nx_uint8_t pck_type; */
-/*   nx_uint16_t val; */
-/* } radio_msg_13; */
 
 typedef nx_struct 
 {
