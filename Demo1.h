@@ -48,23 +48,18 @@ typedef nx_struct radio_type_3_msg
 /*   nx_uint16_t sensors_16[16]; */
 /* } radio_msg_6; */
 
-/* typedef nx_struct radio_type_7_msg  */
+/* typedef nx_struct radio_type_7_msg */
 /* { */
 /*   nx_uint8_t type; */
 /*   nx_uint16_t sensors_32[32]; */
 /* } radio_msg_7; */
 
-typedef nx_struct radio_type_8_msg 
+// for the package type 8 and 9
+typedef nx_struct radio_type_89_msg 
 {
   nx_uint8_t pck_type;
-  nx_uint16_t lsensor_reading;
-} radio_msg_8;
-
-typedef nx_struct radio_type_9_msg 
-{
-  nx_uint8_t pck_type;
-  nx_uint16_t tsensor_reading;
-} radio_msg_9;
+  nx_uint16_t sensor_reading;
+} radio_msg_89;
 
 /* typedef nx_struct radio_type_10_msg  */
 /* { */

@@ -33,9 +33,9 @@
 
 #include "Timer.h"
 #include "Demo1.h"
-#include <string.h>
+#include <string.h> // memcpy
 #include <UserButton.h>
-#define NEW_PRINTF_SEMANTICS
+#define NEW_PRINTF_SEMANTICS // printf
 #include "printf.h"
 
 module Demo1C @safe() {
@@ -68,6 +68,7 @@ module Demo1C @safe() {
 
 implementation // the implementation part
 {				 
+  /* const uint16_t T_TO_BASEST = 0x1205;  */
   message_t dis_packet;	// a packet for the distributed algorithm
   message_t cen_packet; // a packet for the centralized algorithm
   void* busy = NULL;
@@ -81,7 +82,7 @@ implementation // the implementation part
   uint16_t T_BUDDY_ID = 0;
   uint16_t T_BUDDY_ID2 = 0; // only for T:0x2728
   uint8_t  T_GROUP_ID = 0;
-  uint16_t BASE_STATION_ID = 0x7F38;    //  uint16_t in AM.h
+  uint16_t BASE_STATION_ID = 0;    //  uint16_t in AM.h
   // depends on how to send the pck1 to other nodes
   bool FW_PCK1_TO_BUDDY = TRUE;
   // if the light sensor value is read and sent,
@@ -105,7 +106,7 @@ implementation // the implementation part
       connecting_node = TRUE;
       FW_PCK1_TO_BUDDY = FALSE;
       // if the base station is changed, 
-      /* BASE_STATION_ID = 0x7EB7;    //  uint16_t in AM.h */
+      BASE_STATION_ID = 0x7F38;    //  uint16_t in AM.h
     } else if(TOS_NODE_ID == 0x1003)
     {
       PRINCIPLE_ID = 0X7F45;
@@ -213,11 +214,11 @@ implementation // the implementation part
     if(src_addr == PRINCIPLE_ID)
     {
       am_send(T_BUDDY_ID, pck_ptr, sz);
-      printf("fw data to 0x%04X\n", T_BUDDY_ID);
+      printf("fw data to BUDDY: 0x%04X\n", T_BUDDY_ID);
     } else if(src_addr == T_BUDDY_ID)
     {
       am_send(PRINCIPLE_ID, pck_ptr, sz);
-      printf("fw data to 0x%04X\n", PRINCIPLE_ID);
+      printf("fw data to PN: 0x%04X\n", PRINCIPLE_ID);
     }
   }
   void read_sensors() {
@@ -228,9 +229,8 @@ implementation // the implementation part
     if(lsensor_trigger)
       call LRead.read();
   }
-
-  event void Boot.booted() // when booted these functions will be called
-  { 
+  event void Boot.booted() {
+    // when booted these functions will be called
     // setup procedure
     setup();
 
@@ -238,8 +238,7 @@ implementation // the implementation part
     printf("\n\n\n\n-- Date: %s Time: %s --\n", __DATE__, __TIME__);
     printf("*** Node ID: 0x%04X Group: %d, Principle_id: 0x%X T_BUDDY_ID: 0x%X ***\n",
 	   TOS_NODE_ID, T_GROUP_ID, PRINCIPLE_ID, T_BUDDY_ID);
-    printf("*** Basestation ID: B:0x%04X B:%d***\n\n", 
-	   BASE_STATION_ID, BASE_STATION_ID);
+    printf("*** Basestation ID: B:0x%04X ***\n\n", BASE_STATION_ID);
     /* printf("*** TOSH_DATA_LENGTH: %d ***\n", TOSH_DATA_LENGTH); */
     call CC2420Config.setPanAddr(1);
     call CC2420Config.setChannel(26);
@@ -249,8 +248,8 @@ implementation // the implementation part
     printfflush();  
   }
 
-  event void TRead.readDone(error_t result, uint16_t data) 
-  { // when the Temperature sensor is done, process the data
+  event void TRead.readDone(error_t result, uint16_t data) {
+    // when the Temperature sensor is done, process the data
     if (result == SUCCESS)
     {
       int16_t temp = -38.4 + 0.0098 * data; // temp = 30c or 85f when data = 7000
@@ -261,8 +260,8 @@ implementation // the implementation part
       printf("TSensor fails\n");
   }  
 
-  event void LRead.readDone(error_t result, uint16_t data) 
-  { // when the Light sensor is done, process the data
+  event void LRead.readDone(error_t result, uint16_t data) {
+    // when the Light sensor is done, process the data
     if (result == SUCCESS)
     {
       printf("LSensor reading data: %u\n", data);
@@ -280,8 +279,7 @@ implementation // the implementation part
 	     SUCCESS, error, busy, bufPtr);
   }
 
-  event void AMControl.startDone(error_t err) 
-  {
+  event void AMControl.startDone(error_t err) {
     if (err != SUCCESS) {
       call AMControl.start();
     }
@@ -298,24 +296,21 @@ implementation // the implementation part
     {
       printf("\n\nCen Timer fire\n");
       read_sensors();
+      radio_msg_89* pck89 = (radio_msg_89*) call Packet.getPayload(&cen_packet, sizeof(radio_msg_89));
       if((tsensor_trigger == FALSE) && (lsensor_trigger == TRUE))
       { // light sensor 
-	radio_msg_8* pck8 = (radio_msg_8*) call Packet.getPayload(&cen_packet, sizeof(radio_msg_8));
-	printf("Msg8 send to 0x%04X\n", BASE_STATION_ID);
-	pck8->pck_type = 8;
-	pck8->lsensor_reading = lsensor_reading;
-	am_send(BASE_STATION_ID, &cen_packet, sizeof(radio_msg_8));
-
+	printf("Msg8 send to BS: 0x%04X\n", BASE_STATION_ID);
+	pck89->pck_type = 8;
+	pck89->sensor_reading = lsensor_reading;
       } else if((tsensor_trigger == TRUE) && (lsensor_trigger == FALSE))
       { // temp sensor 
-	radio_msg_9* pck9 = (radio_msg_9*) call Packet.getPayload(&cen_packet, sizeof(radio_msg_9));
-	printf("Msg9 send to 0x%04X\n", BASE_STATION_ID);
-	pck9->pck_type = 9;
-	pck9->tsensor_reading = tsensor_reading;
-	am_send(BASE_STATION_ID, &cen_packet, sizeof(radio_msg_9));
+	printf("Msg9 send to BS: 0x%04X\n", BASE_STATION_ID);
+	pck89->pck_type = 9;
+	pck89->tsensor_reading = tsensor_reading;
       } 
-      cen_timer = 0; // last line 
-    }
+      am_send(BASE_STATION_ID, &cen_packet, sizeof(radio_msg_89));
+      cen_timer = 0; 
+    } // end else if(cen_timer == 1)
   }
 
   event void Dis_Timer.fired() {
@@ -324,7 +319,7 @@ implementation // the implementation part
     if((tsensor_trigger == FALSE) && (lsensor_trigger == TRUE))
     {
       radio_msg_2* pck2 = (radio_msg_2*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_2));
-      printf("Msg2 send to 0x%04X\n", PRINCIPLE_ID);
+      printf("Msg2 send to PN: 0x%04X\n", PRINCIPLE_ID);
       pck2->type = 2;
       pck2->lsensor_reading = lsensor_reading;
       am_send(PRINCIPLE_ID, &dis_packet, sizeof(radio_msg_2));
@@ -332,11 +327,10 @@ implementation // the implementation part
     } else if((tsensor_trigger == TRUE) && (lsensor_trigger == FALSE))
     {
       radio_msg_3* pck3 = (radio_msg_3*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_3));
-      printf("Msg3 send to 0x%04X\n", PRINCIPLE_ID);
+      printf("Msg3 send to PN: 0x%04X\n", PRINCIPLE_ID);
       pck3->type = 3;
       pck3->tsensor_reading = tsensor_reading;
       am_send(PRINCIPLE_ID, &dis_packet, sizeof(radio_msg_3));
-
     }
     printf("^^^ Dis Timer fired end ^^^\n");
     printfflush();
@@ -354,7 +348,7 @@ implementation // the implementation part
 	 (src_addr == PRINCIPLE_ID) || 
 	 (src_addr == BASE_STATION_ID) ||
 	 (pck_type == 0)))
-    { // if the package is not detined to be received by this node,
+    { // if the package is not destined to be received by this node,
       // return immediately.
       printfflush();
       return bufPtr;
@@ -369,7 +363,7 @@ implementation // the implementation part
       printfflush();
       call Leds.led0Off();
       if(msg0.flooding == FLOODING_CONSTANT)
-      {
+      { // reset the node
 	WDTCTL = WDT_ARST_1_9;
 	while(1);
       }
@@ -386,6 +380,8 @@ implementation // the implementation part
 	// select the message type
 	printf("Msg1 %d [(delay: %d), (sensor_type: %d)]\n", 
 	       pck_type, delay_sec, sensor_type);
+	BASE_STATION_ID = msg->data[0]; // 0 -> base station id
+	printf("Base station ID: 0x%0X\n", BASE_STATION_ID);
 	printf("Save the setup\n");
 	reset_setup_values();
 	// set up the sensor config
@@ -398,12 +394,11 @@ implementation // the implementation part
 	  tsensor_trigger = TRUE;
 	  call Leds.led2On();
 	}
-	// BASE_STATION_ID = msg->data[0];
-
+	
 	if(having_buddy && FW_PCK1_TO_BUDDY)
 	{ // forward to the buddy telosb
 	  radio_msg_t* pck1_fw = (radio_msg_t*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_t));
-	  printf("fw to 0x%04X\n", T_BUDDY_ID);
+	  printf("fw to BUDDY: 0x%04X\n", T_BUDDY_ID);
 	  // void *memcpy(void *dest, const void *src, size_t n)
 	  memcpy(pck1_fw, msg, sizeof(radio_msg_t));
 	  am_send(T_BUDDY_ID, &dis_packet, sizeof(radio_msg_t));
@@ -415,9 +410,10 @@ implementation // the implementation part
 	call Cen_Timer.startPeriodic(1789); // 1.789 sec
 
       } else if((src_addr == T_BUDDY_ID) ||
-		((src_addr == BASE_STATION_ID) && (TOS_NODE_ID == 0x1205)))
+		((src_addr == BASE_STATION_ID) && 
+		 (TOS_NODE_ID == 0x1205)))
       {
-	// the connecting node forwards the data to its buddy
+	// the connecting node forwards the data to its principle node
 	// it is T:0x1205 and receive the pck from base station
 	radio_msg_t* pck1_fw = (radio_msg_t*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_t));
 	printf("fw to HC: %d S:0x%X\n", T_GROUP_ID, PRINCIPLE_ID);
@@ -428,7 +424,8 @@ implementation // the implementation part
       // end pck_type == 1
     } else if((pck_type == 5) && 
 	      ((src_addr == T_BUDDY_ID) || 
-	       ((src_addr == PRINCIPLE_ID) && (connecting_node == TRUE))))
+	       ((src_addr == PRINCIPLE_ID) && 
+		(connecting_node == TRUE))))
     { // forward the package to its buddy or its principle
       uint8_t i = 0;
       radio_msg_t* msg_t = (radio_msg_t*) payload;
@@ -436,98 +433,50 @@ implementation // the implementation part
       // void *memcpy(void *dest, const void *src, size_t n)
       memcpy(pck_fw, msg_t, sizeof(radio_msg_t));
       fw_data(src_addr, &dis_packet, sizeof(radio_msg_t));
-      /* if(src_addr == PRINCIPLE_ID) */
-      /* { */
-      /* 	am_send(T_BUDDY_ID, &dis_packet, sizeof(radio_msg_5)); */
-      /* 	printf("fw data to 0x%04X\n", T_BUDDY_ID); */
-      /* } else if(src_addr == T_BUDDY_ID) */
-      /* { */
-      /* 	am_send(PRINCIPLE_ID, &dis_packet, sizeof(radio_msg_5)); */
-      /* 	printf("fw data to 0x%04X\n", PRINCIPLE_ID); */
-      /* } */
-    /* } else if((pck_type == 10) &&  */
-    /* 	      ((src_addr == T_BUDDY_ID) ||  */
-    /* 	       ((src_addr == PRINCIPLE_ID) && (connecting_node == TRUE)))) */
-    /* { // forward the package to its buddy or its principle */
-    /*   uint8_t i = 0; */
-    /*   radio_msg_10* msg10 = (radio_msg_10*) payload; */
-    /*   radio_msg_10* pck10_fw = (radio_msg_10*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_10)); */
-    /*   // void *memcpy(void *dest, const void *src, size_t n) */
-    /*   memcpy(pck10_fw, msg10, sizeof(radio_msg_10)); */
 
-    /*   if(src_addr == PRINCIPLE_ID) */
-    /*   { */
-    /* 	am_send(T_BUDDY_ID, &dis_packet, sizeof(radio_msg_10)); */
-    /* 	printf("fw data to 0x%04X\n", T_BUDDY_ID); */
-    /*   } else if(src_addr == T_BUDDY_ID) */
-    /*   { */
-    /* 	am_send(PRINCIPLE_ID, &dis_packet, sizeof(radio_msg_10)); */
-    /* 	printf("fw data to 0x%04X\n", PRINCIPLE_ID); */
-    /*   } */
     } else if((pck_type == 6) && 
 	      ((src_addr == T_BUDDY_ID) || 
-	       ((src_addr == PRINCIPLE_ID) && (connecting_node == TRUE))))
+	       ((src_addr == PRINCIPLE_ID) && 
+		(connecting_node == TRUE))))
     { // forward the package to its buddy or its principle
       radio_msg_t* msg_t = (radio_msg_t*) payload;
       radio_msg_t* pck_fw = (radio_msg_t*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_t));
       memcpy(pck_fw, msg_t, sizeof(radio_msg_t));
       fw_data(src_addr, &dis_packet, sizeof(radio_msg_t));
-      /* if(src_addr == PRINCIPLE_ID) */
-      /* { */
-      /* 	am_send(T_BUDDY_ID, &dis_packet, sizeof(radio_msg_6)); */
-      /* 	printf("fw data to 0x%04X\n", T_BUDDY_ID); */
-      /* } else if(src_addr == T_BUDDY_ID) */
-      /* { */
-      /* 	am_send(PRINCIPLE_ID, &dis_packet, sizeof(radio_msg_6)); */
-      /* 	printf("fw data to 0x%04X\n", PRINCIPLE_ID); */
-      /* } */
-    /* } else if((pck_type == 11) &&  */
-    /* 	      ((src_addr == T_BUDDY_ID) ||  */
-    /* 	       ((src_addr == PRINCIPLE_ID) && (connecting_node == TRUE)))) */
-    /* { // forward the package to its buddy or its principle */
-    /*   radio_msg_11* msg11 = (radio_msg_11*) payload; */
-    /*   radio_msg_11* pck11_fw = (radio_msg_11*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_11)); */
-    /*   memcpy(pck11_fw, msg11, sizeof(radio_msg_11)); */
 
-    /*   if(src_addr == PRINCIPLE_ID) */
-    /*   { */
-    /* 	am_send(T_BUDDY_ID, &dis_packet, sizeof(radio_msg_11)); */
-    /* 	printf("fw data to 0x%04X\n", T_BUDDY_ID); */
-    /*   } else if(src_addr == T_BUDDY_ID) */
-    /*   { */
-    /* 	am_send(PRINCIPLE_ID, &dis_packet, sizeof(radio_msg_11)); */
-    /* 	printf("fw data to 0x%04X\n", PRINCIPLE_ID); */
-    /*   } */
-	       
     } else if((pck_type == 7) && (TOS_NODE_ID == 0x1205))
     { // only T:0x1205 will handle this case
       radio_msg_t* msg_t = (radio_msg_t*) payload;
       radio_msg_t* pck_fw = (radio_msg_t*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_t));
       memcpy(pck_fw, msg_t, sizeof(radio_msg_t));
       am_send(BASE_STATION_ID, &dis_packet, sizeof(radio_msg_t));
-      printf("fw data to 0x%04X\n", BASE_STATION_ID);
-    } /* else if((pck_type == 12) && (TOS_NODE_ID == 0x1205)) */
-    /* { // only T:0x1205 will handle this case */
-    /*   radio_msg_12* msg12 = (radio_msg_12*) payload; */
-    /*   radio_msg_12* pck12_fw = (radio_msg_12*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_12)); */
-    /*   memcpy(pck7_fw, msg12, sizeof(radio_msg_12)); */
-    /*   am_send(BASE_STATION_ID, &dis_packet, sizeof(radio_msg_12)); */
-    /*   printf("fw data to 0x%04X\n", BASE_STATION_ID); */
-    /* } */
-    else if((pck_type == 13) && 
-	    ((TOS_NODE_ID == 0x2728) || (TOS_NODE_ID == 0x3529)))
-    {
+      printf("send data to BS: 0x%04X\n", BASE_STATION_ID);
+
+    } else if((pck_type == 13) && 
+	      ((TOS_NODE_ID == 0x2728) || (TOS_NODE_ID == 0x3529)))
+    { // send the data across cluster 2 to cluster 3
       radio_msg_t* msg_t = (radio_msg_t*) payload;
       radio_msg_t* pck_fw = (radio_msg_t*) call Packet.getPayload(&dis_packet, sizeof(radio_msg_t));
       memcpy(pck_fw, msg_t, sizeof(radio_msg_t));
       fw_data(src_addr, &dis_packet, sizeof(radio_msg_t));
+      printf("fw data to across 0x%04X\n", src_addr);
     }
 
     printfflush();
     return bufPtr;
+  } // Receive.receive
+
+  event void Notify.notify(button_state_t val) {
+    // print out the info when the button is pressed
+    if(val == BUTTON_PRESSED)
+    {
+      printf("\n\n\n\n-- Date: %s Time: %s --\n", __DATE__, __TIME__);
+      printf("*** Node ID: 0x%04X Group: %d, Principle_id: 0x%X T_BUDDY_ID: 0x%X ***\n", TOS_NODE_ID, T_GROUP_ID, PRINCIPLE_ID, T_BUDDY_ID);
+      printf("*** Basestation ID: B:0x%04X ***\n\n", BASE_STATION_ID);
+      printfflush();    
+    }
   }
 
-  event void Notify.notify(button_state_t val) {}
   event void AMControl.stopDone(error_t err) {}
   event void CC2420Config.syncDone(error_t err) {}
   async event void CC2420Power.startOscillatorDone() {}
