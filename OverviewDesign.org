@@ -3,7 +3,7 @@
 #+STARTUP: overview indent hidestars
 #+TODO: TODO IN-PROGRESS WAITING DONE
 #+PRIORITIES: A C A
-#+TITLE Demo Max RS 
+#+TITLE: Demo Max RS 
 
 * GUI 
 ** Visualization
@@ -153,12 +153,9 @@ farenheit = ((9.0 * celcius) / 5.0) + 32.0
 | 8 bytes both +  | 12 = 7 | telosbs           | sun spot    | data trans  | 32+1 |
 | node_count      |        |                   |             |             |      |
 |-----------------+--------+-------------------+-------------+-------------+------|
-| 2 byte          |     13 | telosb            | sun, telsob | testing pck |    2 |
+| radio_msg_t     |     13 | telosb            | sun, telosb | data trans  |    2 |
 |-----------------+--------+-------------------+-------------+-------------+------|
-@Note: Pck No. 0 broadcast constant = 0
-@Note: No. 1 pck type is either 2, 3, or 4. 
-@Note: No. 5, 6 and 7 are the testing pcks.
-@Note: all types of the package must have package type = 8 bits.
+
 |-------+----------+-----------+---|
 |   No. | from     | to        |   |
 |-------+----------+-----------+---|
@@ -193,6 +190,11 @@ farenheit = ((9.0 * celcius) / 5.0) + 32.0
 |     7 | S:0x7F45 | T:0x1205  |   |
 |       | T:0x1205 | base      |   |
 |-------+----------+-----------+---|
+@Note: Pck No. 0 broadcast constant = 0
+@Note: No. 1 pck type is either 2, 3, or 4. 
+@Note: No. 5, 6 and 7 are the testing pcks.
+@Note: all types of the package must have package type = 8 bits.
+@Note: radio_msg_t int8, int16 * 44
 
 ** Basestation
 |---------+----------+--------+----------+-------+----------+------------|
