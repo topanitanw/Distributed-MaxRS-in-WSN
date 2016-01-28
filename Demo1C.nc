@@ -236,7 +236,7 @@ implementation // the implementation part
 
     call Leds.led0On();
     printf("\n\n\n\n-- Date: %s Time: %s --\n", __DATE__, __TIME__);
-    printf("*** Node ID: 0x%04X Group: %d, Principle_id: 0x%X T_BUDDY_ID: 0x%X ***\n",
+    printf("*** Node ID: 0x%04X Group: %d, Principle_id: 0x%04X T_BUDDY_ID: 0x%04X ***\n",
 	   TOS_NODE_ID, T_GROUP_ID, PRINCIPLE_ID, T_BUDDY_ID);
     printf("*** Basestation ID: B:0x%04X ***\n\n", BASE_STATION_ID);
     /* printf("*** TOSH_DATA_LENGTH: %d ***\n", TOSH_DATA_LENGTH); */
@@ -288,25 +288,26 @@ implementation // the implementation part
 
   event void Cen_Timer.fired() {
     // if fired, send teh data to the base station
+    radio_msg_89* pck_89 = NULL;
     if(cen_timer == 0)
     { // skip
       cen_timer = 1;
       return;
     } else if(cen_timer == 1)
     {
-      printf("\n\nCen Timer fire\n");
+      pck_89 = (radio_msg_89*) call Packet.getPayload(&cen_packet, sizeof(radio_msg_89));
       read_sensors();
-      radio_msg_89* pck89 = (radio_msg_89*) call Packet.getPayload(&cen_packet, sizeof(radio_msg_89));
+      printf("\n\nCen Timer fire\n");
       if((tsensor_trigger == FALSE) && (lsensor_trigger == TRUE))
       { // light sensor 
 	printf("Msg8 send to BS: 0x%04X\n", BASE_STATION_ID);
-	pck89->pck_type = 8;
-	pck89->sensor_reading = lsensor_reading;
+	pck_89->pck_type = 8;
+	pck_89->sensor_reading = lsensor_reading;
       } else if((tsensor_trigger == TRUE) && (lsensor_trigger == FALSE))
       { // temp sensor 
 	printf("Msg9 send to BS: 0x%04X\n", BASE_STATION_ID);
-	pck89->pck_type = 9;
-	pck89->tsensor_reading = tsensor_reading;
+	pck_89->pck_type = 9;
+	pck_89->sensor_reading = tsensor_reading;
       } 
       am_send(BASE_STATION_ID, &cen_packet, sizeof(radio_msg_89));
       cen_timer = 0; 
@@ -360,6 +361,7 @@ implementation // the implementation part
     if(pck_type == 0)
     { // reset
       radio_msg_0 msg0 = *((radio_msg_0*) payload);
+      printf("test %d\n", msg0.flooding);
       printfflush();
       call Leds.led0Off();
       if(msg0.flooding == FLOODING_CONSTANT)
@@ -471,7 +473,8 @@ implementation // the implementation part
     if(val == BUTTON_PRESSED)
     {
       printf("\n\n\n\n-- Date: %s Time: %s --\n", __DATE__, __TIME__);
-      printf("*** Node ID: 0x%04X Group: %d, Principle_id: 0x%X T_BUDDY_ID: 0x%X ***\n", TOS_NODE_ID, T_GROUP_ID, PRINCIPLE_ID, T_BUDDY_ID);
+      printf("*** Node ID: 0x%04X Group: %d, Principle_id: 0x%04X T_BUDDY_ID: 0x%04X ***\n", 
+	     TOS_NODE_ID, T_GROUP_ID, PRINCIPLE_ID, T_BUDDY_ID);
       printf("*** Basestation ID: B:0x%04X ***\n\n", BASE_STATION_ID);
       printfflush();    
     }

@@ -6,8 +6,9 @@ enum {
   // 65 = 0x41, 
   AM_RADIO_SENSE_MSG = 0x41,   
   // AM_BROADCAST_ADDR = 0xFFFF already defined in AM.h
-  FLOODING_CONSTANT = 0xFF,    //  flooding constant 8 bits
-  MAX_DATA_SZ = 44
+  FLOODING_CONSTANT = 0x7F,    //  flooding constant 8 bits
+  MAX_DATA_SZ = 44,
+  RESET_NODE_ID = 0x00
 };
 
 // package 0, 2, 3, 8, 9
